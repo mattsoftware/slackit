@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+# SSM_PARAMETER_PREFIX the prefix (not including the trailing slash) that will be used to fetch credentials
+# SLACKUSER user who posts notifications
+# CHANNEL witch channel it should be posted
+# SITE is the URL provided by the Slack's WebHook, something like:
+# https://hooks.slack.com/services/TOKEN"
+
+#SSM_PARAMETER_PREFIX=
+#SITE=
+#CHANNEL=
+#SLACKUSER=
+AWS_CMD="aws --region us-east-1"
+
+#=============================================================================================
+# Customise the parameters above this line. Nothing under this line should need to be modified
+
+: ${SSM_PARAMTER_PREFIX:=}
+: ${AWS_CMD:="aws"}
+
+if [[ ! -z $SSM_PARAMETER_PREFIX ]]; then
+    PARAMS="$($AWS_CMD ssm get-parameters --with-decryption --output text --names "$SSM_PARAMETER_PREFIX/site" "$SSM_PARAMETER_PREFIX/channel" "$SSM_PARAMETER_PREFIX/slackuser" --query 'Parameters[*].[Name,Value]')"
+    SITE=$(echo "$PARAMS" | grep -e "^$SSM_PARAMETER_PREFIX/site"$'\t' | awk '{print $2}')
+    CHANNEL=$(echo "$PARAMS" | grep -e "^$SSM_PARAMETER_PREFIX/channel"$'\t' | awk '{print $2}')
+    SLACKUSER=$(echo "$PARAMS" | grep -e "^$SSM_PARAMETER_PREFIX/slackuser"$'\t' | awk '{print $2}')
+fi
+: ${SITE:=}
+: ${CHANNEL:="#general"}
+: ${SLACKUSER:="bot"}
+

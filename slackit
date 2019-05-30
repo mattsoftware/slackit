@@ -1,0 +1,30 @@
+#!/bin/sh
+
+ERR_NOSITE=1
+ERR_NOCMD=2
+
+: ${CONFIG_FILE:="/etc/slackit_config"}
+
+[ -x $CONFIG_FILE ] && source "$CONFIG_FILE"
+if [[ ! -z $1 ]]; then CHANNEL=$1; shift; fi
+
+ALERTFULL=$(cat /dev/fd/0)
+# TODO: Sanitise
+PAYLOAD='{"channel": "'"$CHANNEL"'", "username": "'"$SLACKUSER"'", "text": "'"${ALERTFULL}"'"}'
+
+[[ $SITE == "" ]] && echo $PAYLOAD && exit ERR_NOSITE
+ls "$(which curl)" > /dev/null 2>&1
+if [ ! $? = 0 ]; then
+    ls "$(which wget)" > /dev/null 2>&1
+    if [ $? = 0 ]; then
+        wget --keep-session-cookies --post-data="${PAYLOAD}" "${SITE}"
+        exit 0
+    fi
+else
+    curl -X POST --data-urlencode "payload=${PAYLOAD}" "${SITE}"
+    exit 0
+fi
+
+echo "$(date) $0: Unable to find curl or wget."
+exit ERR_NOCMD
+
